@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Perfil Comportamental Avançado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Bibliotecas para Geração de PDF, Imagem, Áudio e Gráficos -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    keyframes: {
+                        'fade-in': {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        'pulse-icon': {
+                            '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+                            '50%': { transform: 'scale(1.1)', opacity: '0.8' },
+                        },
+                        'confetti-fall': {
+                            '0%': { transform: 'translateY(-100%) rotateZ(0deg)', opacity: 1 },
+                            '100%': { transform: 'translateY(100vh) rotateZ(720deg)', opacity: 0 },
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fade-in 0.5s ease-out forwards',
+                        'pulse-icon': 'pulse-icon 2s ease-in-out infinite',
+                        'confetti-fall': 'confetti-fall 4s ease-out forwards'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .question-card { animation: fade-in 0.5s ease-out forwards; }
+        .modal-backdrop { transition: opacity 0.3s ease; }
+        .result-card-enter {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        #profile-bars-container h4 {
+            white-space: nowrap;
+        }
+        .confetti {
+            position: absolute;
+            width: 8px;
+            height: 16px;
+            top: -20px;
+            z-index: 100;
+        }
+        #share-card-wrapper {
+            position: fixed;
+            left: -9999px; 
+            top: 0;
+            z-index: -100;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 antialiased transition-colors duration-300 overflow-x-hidden">
+
+    <div id="app" class="container mx-auto max-w-4xl p-4 sm:p-6 md:p-8 min-h-screen flex flex-col justify-center">
+        
+        <div class="absolute top-4 right-4 z-10">
+            <button id="theme-toggle" class="p-2 rounded-full bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 dark:focus:ring-offset-gray-900 focus:ring-blue-500">
+                <svg id="theme-icon-sun" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <svg id="theme-icon-moon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+            </button>
+        </div>
+        
+        <div id="start-screen" class="text-center">
+             <div id="start-icons-container" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"></div>
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 dark:text-white mb-4">Desvende o seu Perfil</h1>
+            <p class="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-xl mx-auto">Responda a 25 perguntas rápidas e descubra os segredos da sua personalidade profissional.</p>
+            <div class="mb-6">
+                <input type="text" id="name-input" placeholder="Digite o seu nome aqui..." class="w-full max-w-md px-5 py-4 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition text-center text-lg">
+            </div>
+            <button id="start-btn" class="bg-blue-600 text-white font-bold py-4 px-10 rounded-xl hover:bg-blue-700 transition-all duration-300 shadow-lg transform hover:scale-105 text-lg">
+                Começar o Teste
+            </button>
+             <div class="absolute bottom-4 right-4">
+                <button id="admin-btn" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="quiz-screen" class="hidden w-full">
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
+                <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <div class="text-center mb-8">
+                <p class="text-gray-600 dark:text-gray-400 font-semibold">Pergunta <span id="question-counter">1</span> de 25</p>
+            </div>
+            <div id="question-container"></div>
+            <div class="flex justify-between mt-8">
+                 <button id="prev-btn" class="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-3 px-8 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-300">Anterior</button>
+                 <button id="next-btn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition-colors duration-300">Próxima</button>
+            </div>
+        </div>
+        
+        <div id="analyzing-screen" class="hidden text-center">
+            <div id="analyzing-icons-container" class="flex justify-center items-center space-x-4 mb-6"></div>
+            <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mt-6">A analisar...</h2>
+            <p class="text-lg text-gray-600 dark:text-gray-300">Estamos a montar o seu mapa comportamental.</p>
+        </div>
+
+        <div id="results-screen" class="hidden w-full max-w-5xl mx-auto"></div>
+        
+        <div id="answer-key-screen" class="hidden w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg">
+            <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-6 text-center">Gabarito das Perguntas</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" class="py-3 px-6">#</th>
+                            <th scope="col" class="py-3 px-6">Opção 1 (Águia 🦅)</th>
+                            <th scope="col" class="py-3 px-6">Opção 2 (Gato 🐈)</th>
+                            <th scope="col" class="py-3 px-6">Opção 3 (Lobo 🐺)</th>
+                            <th scope="col" class="py-3 px-6">Opção 4 (Tubarão 🦈)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="answer-key-body">
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-8 text-center">
+                <button id="close-answer-key-btn" class="bg-gray-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-600 transition-all duration-300 shadow-md">Fechar Gabarito</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modals -->
+    <div id="password-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 opacity-0">
+        <div class="modal-content bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl text-center max-w-sm w-full">
+            <h3 class="text-xl font-bold mb-4">Acesso Restrito</h3>
+            <p class="mb-4 text-gray-600 dark:text-gray-300">Por favor, insira a senha para ver o gabarito.</p>
+            <input type="password" id="password-input" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 mb-4">
+            <div class="flex gap-4">
+                <button id="password-cancel-btn" class="w-full bg-gray-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-600 transition">Cancelar</button>
+                <button id="password-submit-btn" class="w-full bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition">Entrar</button>
+            </div>
+        </div>
+    </div>
+    <div id="validation-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 opacity-0">
+        <div class="modal-content bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl text-center max-w-sm w-full">
+            <h3 class="text-xl font-bold mb-4">Atenção!</h3>
+            <p id="modal-message" class="mb-6"></p>
+            <button id="modal-close-btn" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition">OK</button>
+        </div>
+    </div>
+    <div id="function-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 opacity-0">
+         <div class="modal-content bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl text-left max-w-md w-full">
+            <h3 id="function-modal-title" class="text-2xl font-bold mb-4 text-center"></h3>
+            <div class="space-y-4">
+                <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                    <h4 class="text-lg font-bold text-green-800 dark:text-green-300 mb-2">Pontos Fortes na Área</h4>
+                    <ul id="function-modal-strengths" class="text-gray-700 dark:text-gray-300 space-y-2"></ul>
+                </div>
+                <div class="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                    <h4 class="text-lg font-bold text-yellow-800 dark:text-yellow-300 mb-2">Pontos a Melhorar na Área</h4>
+                    <ul id="function-modal-weaknesses" class="text-gray-700 dark:text-gray-300 space-y-2"></ul>
+                </div>
+            </div>
+            <button id="function-modal-close-btn" class="mt-6 w-full bg-gray-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-600 transition">Fechar</button>
+        </div>
+    </div>
+     <div id="interaction-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 opacity-0">
+         <div class="modal-content bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl text-left max-w-md w-full">
+            <h3 id="interaction-modal-title" class="text-2xl font-bold mb-4 text-center"></h3>
+            <div class="space-y-4">
+                <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                    <h4 class="text-lg font-bold text-green-800 dark:text-green-300 mb-2">Sinergias</h4>
+                    <p id="interaction-modal-synergy" class="text-gray-700 dark:text-gray-300"></p>
+                </div>
+                <div class="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                    <h4 class="text-lg font-bold text-yellow-800 dark:text-yellow-300 mb-2">Pontos de Atenção</h4>
+                    <p id="interaction-modal-attention" class="text-gray-700 dark:text-gray-300"></p>
+                </div>
+            </div>
+            <button id="interaction-modal-close-btn" class="mt-6 w-full bg-gray-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-600 transition">Fechar</button>
+        </div>
+    </div>
+    
+    <div id="share-card-wrapper">
+        <div id="share-card" class="bg-white p-6 w-[450px]">
+            <h2 id="share-card-name" class="text-2xl font-bold text-center text-gray-800 mb-1"></h2>
+            <p class="text-center text-gray-600 mb-4">Este é o meu mapa comportamental!</p>
+            <div id="share-card-chart" class="grid grid-cols-4 gap-2"></div>
+            <p id="share-card-combo-title" class="text-center text-indigo-500 font-bold text-xl mt-4"></p>
+        </div>
+    </div>
+
+
+    <script>
+        const questions = [
+            { "question": "1. Eu sou...", "options": ["Idealista, criativo e visionário", "Divertido, espiritual e benéfico", "Confiável, meticuloso e previsível", "Focado, determinado e persistente"] },
+            { "question": "2. Eu gosto de...", "options": ["Ser piloto", "Conversar com os passageiros", "Planear a viagem", "Explorar novas rotas"] },
+            { "question": "3. Se quiser dar-se bem comigo...", "options": ["Dê-me liberdade", "Deixe-me saber a sua expectativa", "Seja amigável, carinhoso e compreensivo", "Fale, siga ou saia do caminho"] },
+            { "question": "4. Para conseguir obter bons resultados é preciso...", "options": ["Ter incertezas", "Controlar o essencial", "Diversão e celebração", "Planear e obter recursos"] },
+            { "question": "5. Eu divirto-me quando...", "options": ["Estou a exercitar-me", "Tenho novidades", "Estou com os outros", "Determino as regras"] },
+            { "question": "6. Eu penso que...", "options": ["Unidos venceremos, divididos perderemos", "O ataque é melhor que a defesa", "É bom ser manso, mas andar com um porrete", "Um homem prevenido vale por dois"] },
+            { "question": "7. A minha preocupação é...", "options": ["Gerar a ideia global", "Fazer com que as pessoas gostem", "Fazer com que funcione", "Fazer com que aconteça"] },
+            { "question": "8. Eu prefiro...", "options": ["Perguntas a respostas", "Ter todos os detalhes", "Vantagens a meu favor", "Que todos tenham a chance de ser ouvidos"] },
+            { "question": "9. Eu gosto de...", "options": ["Fazer progresso", "Construir memórias", "Fazer sentido", "Tornar as pessoas confortáveis"] },
+            { "question": "10. Eu gosto de chegar...", "options": ["Na frente", "Junto", "Na hora", "Noutro lugar"] },
+            { "question": "11. Um ótimo dia para mim é quando...", "options": ["Consigo fazer muitas coisas", "Divirto-me com os meus amigos", "Tudo segue conforme planeado", "Desfruto de coisas novas e estimulantes"] },
+            { "question": "12. Eu vejo a morte como...", "options": ["Uma grande aventura misteriosa", "Oportunidade para rever os falecidos", "Um modo de receber recompensas", "Algo que sempre chega muito cedo"] },
+            { "question": "13. A minha filosofia de vida é...", "options": ["Há perdedores e vencedores, e eu acredito ser um ganhador", "Para eu ganhar, ninguém precisa de perder", "Para ganhar é preciso seguir as regras", "Para ganhar, é necessário inventar novas regras"] },
+            { "question": "14. Eu sempre gostei de...", "options": ["Explorar", "Evitar surpresas", "Focalizar a meta", "Realizar uma abordagem natural"] },
+            { "question": "15. Eu gosto de mudanças se...", "options": ["Me derem uma vantagem competitiva", "Forem divertidas e puderem ser partilhadas", "Me derem mais liberdade e variedade", "Melhorarem ou me derem mais controlo"] },
+            { "question": "16. Não existe nada de errado em...", "options": ["Colocar-se na frente", "Colocar os outros na frente", "Mudar de ideias", "Ser consistente"] },
+            { "question": "17. Eu gosto de procurar conselhos de...", "options": ["Pessoas bem-sucedidas", "Anciãos e conselheiros", "Autoridades no assunto", "Lugares, os mais estranhos"] },
+            { "question": "18. O meu lema é...", "options": ["Fazer o que precisa de ser feito", "Fazer bem feito", "Fazer junto com o grupo", "Simplesmente fazer"] },
+            { "question": "19. Eu gosto de...", "options": ["Complexidade, mesmo que confusa", "Ordem e sistematização", "Calor humano e animação", "Coisas claras e simples"] },
+            { "question": "20. O tempo para mim é...", "options": ["Algo que detesto desperdiçar", "Um grande ciclo", "Uma flecha que leva ao inevitável", "Irrelevante"] },
+            { "question": "21. Se eu fosse bilionário...", "options": ["Faria doações para muitas entidades", "Criaria uma poupança avultada", "Faria o que me desse na cabeça", "Exibir-me-ia bastante com algumas pessoas"] },
+            { "question": "22. Eu acredito que...", "options": ["O destino é mais importante que a jornada", "A jornada é mais importante que o destino", "Um centavo economizado é um centavo ganho", "Bastam um navio e uma estrela para navegar"] },
+            { "question": "23. Eu acredito também que...", "options": ["Aquele que hesita está perdido", "De grão em grão a galinha enche o papo", "O que vai, volta", "Um sorriso ou uma careta é o mesmo para quem é cego"] },
+            { "question": "24. Eu acredito ainda que...", "options": ["É melhor ter prudência do que arrependimento", "A autoindulgência é perdoável", "O saber é fundamental", "O coletivo é mais importante do que o individual"] },
+            { "question": "25. Eu penso que...", "options": ["Não é fácil ser encurralado", "É preferível olhar, antes de pular", "Duas cabeças pensam melhor do que uma", "Se não tem condições de competir, não compita"] }
+        ];
+        const optionMapping = ['I', 'C', 'O', 'A']; 
+        const profilesData = {
+            A: { name: 'Tubarão', color: 'bg-red-500', emoji: '🦈', description: "Focado em resultados e ação. É direto, assertivo, competitivo e determinado. Gosta de desafios e é rápido na tomada de decisões.", underPressure: "Sob pressão, pode tornar-se impaciente, autoritário e assumir riscos desnecessários para acelerar os resultados.", collaborationTips: ["Seja direto e vá direto ao ponto.", "Apresente factos e foque-se nos resultados.", "Esteja preparado para um ritmo acelerado."] },
+            O: { name: 'Lobo', color: 'bg-gray-500', emoji: '🐺', description: "Organizado, estratégico e detalhista. Gosta de planear, seguir regras e procura a segurança e a qualidade em tudo o que faz.", underPressure: "Tende a tornar-se excessivamente crítico, rígido com as regras e resistente a qualquer mudança de plano.", collaborationTips: ["Dê-me tempo para planear e organizar.", "Forneça todos os detalhes e dados disponíveis.", "Cumpra os prazos e os procedimentos acordados."] },
+            C: { name: 'Gato', color: 'bg-yellow-500', emoji: '🐈', description: "Comunicativo, sociável e valoriza os relacionamentos. Gosta de trabalhar em equipe, é empático, persuasivo e procura a harmonia.", underPressure: "Evita conflitos a todo o custo, pode ter dificuldade em tomar decisões difíceis e pode prometer mais do que consegue entregar para agradar.", collaborationTips: ["Vamos conversar e criar uma boa relação primeiro.", "Crie um ambiente de trabalho positivo e harmonioso.", "Reconheça o meu esforço e o da equipe."] },
+            I: { name: 'Águia', color: 'bg-blue-500', emoji: '🦅', description: "Criativo, visionário e intuitivo. Gosta de inovar, pensar no futuro e ter liberdade de ação. É curioso e procura novas possibilidades.", underPressure: "Pode tornar-se desorganizado, perder o foco nos detalhes importantes e ter dificuldade em cumprir rotinas.", collaborationTips: ["Dê-me liberdade para explorar novas ideias.", "Foque na visão geral, não nos microdetalhes.", "Esteja aberto a mudanças e novas abordagens."] },
+        };
+        const profileCombinations = {
+            'A-O': { title: "Executor Estratégico", desc: "A sua determinação de Tubarão é equilibrada pela organização do Lobo. Você não apenas alcança metas, mas fá-lo de forma planeada e com alta qualidade, sendo ideal para liderar projetos complexos." },
+            'A-C': { title: "Líder Carismático", desc: "A força do Tubarão, combinada com a comunicação do Gato, cria um líder que inspira. Você motiva equipes a alcançar resultados ambiciosos, mantendo um ambiente positivo e colaborativo." },
+            'A-I': { title: "Pioneiro Visionário", desc: "A sua ousadia de Tubarão é potencializada pela criatividade da Águia. Você é excelente a transformar ideias inovadoras em negócios concretos, liderando o caminho em novos mercados." },
+            'O-A': { title: "Organizador Eficiente", desc: "Com a meticulosidade do Lobo e a praticidade do Tubarão, você cria sistemas e processos que entregam resultados consistentes e de alta performance." },
+            'O-C': { title: "Planeador Colaborativo", desc: "A organização do Lobo e a habilidade de relacionamento do Gato fazem de si um pilar para a equipe. Você estrutura o trabalho e garante que todos estejam engajados e em harmonia." },
+            'O-I': { title: "Arquiteto Inovador", desc: "A visão da Águia encontra a precisão do Lobo. Você é capaz de desenhar soluções criativas e garantir que elas sejam implementadas com perfeição e atenção aos detalhes." },
+            'C-A': { title: "Negociador Persuasivo", desc: "O seu carisma de Gato, apoiado pela assertividade do Tubarão, torna-o um negociador nato, excelente a fechar acordos e a construir parcerias estratégicas." },
+            'C-O': { title: "Gestor de Pessoas", desc: "A empatia do Gato com a ordem do Lobo cria um gestor que cuida da equipe e dos processos. Você constrói equipes fortes e garante que o trabalho flui de maneira organizada." },
+            'C-I': { title: "Comunicador Criativo", desc: "A criatividade da Águia com o talento de comunicação do Gato torna-o ideal para marketing e criação. Você tem ideias brilhantes e sabe como apresentá-las de forma cativante." },
+            'I-A': { title: "Estrategista Ousado", desc: "A visão de futuro da Águia com a execução do Tubarão permite que você defina metas ambiciosas e trace o caminho mais rápido para alcançá-las, inspirando todos ao redor." },
+            'I-O': { title: "Inventor Metódico", desc: "A sua mente criativa de Águia é fundamentada pela lógica do Lobo. Você não apenas tem grandes ideias, mas também desenvolve o passo a passo para que elas se tornem realidade." },
+            'I-C': { title: "Inspirador de Equipas", desc: "A visão da Águia com o carisma do Gato torna-o um líder que inspira pelo exemplo. Você une as pessoas em torno de um propósito inovador e motiva-as a colaborar." },
+        };
+        const allFunctionsData = {
+            'Vendas': { A: { s: 'Foco em metas e competitividade para fechar negócios.', w: 'Impaciência na negociação pode levar a perder detalhes.' }, O: { s: 'Organização do funil de vendas e follow-up preciso.', w: 'Lentidão para se adaptar a novas abordagens de venda.' }, C: { s: 'Criação de rapport e relacionamento com o cliente.', w: 'Dificuldade em pressionar para o fecho da venda.' }, I: { s: 'Busca por novos mercados e formas criativas de vender.', w: 'Falta de consistência no processo de vendas.' } },
+            'RH': { A: { s: 'Foco em métricas e resultados para a área.', w: 'Baixa empatia em situações de conflito humano.' }, O: { s: 'Criação de processos de RH justos e organizados.', w: 'Burocracia excessiva que limita a gestão de pessoas.' }, C: { s: 'Excelente comunicação interna e gestão de clima.', w: 'Dificuldade em tomar decisões impopulares, como demissões.' }, I: { s: 'Inovação em programas de desenvolvimento e engajamento.', w: 'Falta de atenção às políticas e regras trabalhistas.' } },
+            'Orçamento': { A: { s: 'Foco em cortar custos para atingir metas financeiras.', w: 'Pode cortar custos essenciais sem uma análise profunda.' }, O: { s: 'Atenção aos detalhes para garantir a precisão orçamental.', w: 'Rigidez excessiva perante imprevistos ou necessidades de ajuste.' }, C: { s: 'Habilidade de negociação com departamentos para definir orçamentos justos.', w: 'Dificuldade em ser firme e dizer "não" a pedidos extraorçamentais.' }, I: { s: 'Visão para alocar recursos em projetos inovadores e de crescimento.', w: 'Pode subestimar os custos reais de implementação de novas ideias.' } },
+            'Assistência Técnica': { A: { s: 'Agilidade para diagnosticar e resolver problemas rapidamente.', w: 'Falta de paciência para ouvir toda a reclamação do cliente.' }, O: { s: 'Segue um método passo a passo para garantir que nada falhe.', w: 'Dificuldade em improvisar quando o problema é totalmente novo.' }, C: { s: 'Empatia e paciência para acalmar clientes frustrados e garantir a satisfação.', w: 'Pode absorver a frustração do cliente e prometer soluções inviáveis.' }, I: { s: 'Pensa em soluções criativas e fora da caixa para os problemas técnicos.', w: 'Pode complicar soluções que poderiam ser mais simples e diretas.' } },
+            'Startup': { A: { s: 'Foco agressivo no crescimento rápido e na conquista de mercado.', w: 'Risco de esgotar a equipe e os recursos na ânsia por resultados.' }, O: { s: 'Criação de uma base sólida de processos desde o início.', w: 'Lentidão na adaptação, o que pode ser fatal num ambiente de startup.' }, C: { s: 'Criação de uma cultura de equipe forte e de uma boa rede de contactos.', w: 'Foco excessivo na harmonia, evitando conflitos necessários ao crescimento.' }, I: { s: 'Visão disruptiva para criar algo verdadeiramente novo no mercado.', w: 'Dificuldade em focar num único produto ou serviço (MVP).' } },
+            'Projetos': { A: { s: 'Garantia de entrega no prazo e foco no resultado final.', w: 'Pressionar a equipe excessivamente, ignorando o bem-estar.' }, O: { s: 'Planeamento detalhado, controlo de escopo e de riscos.', w: 'Falta de flexibilidade para lidar com mudanças inesperadas no projeto.' }, C: { s: 'Manter a equipe unida e comunicativa durante todo o projeto.', w: 'Evitar conversas difíceis sobre prazos e responsabilidades.' }, I: { s: 'Trazer soluções criativas para os problemas que surgem no projeto.', w: 'Perder o foco nos detalhes críticos da execução.' } },
+            'Programador': { A: { s: 'Entrega rápida de funcionalidades (sprints agressivos).', w: 'A qualidade do código pode ser sacrificada pela velocidade.' }, O: { s: 'Lógica e método para criar código limpo e bem documentado.', w: 'Resistência a adotar novas tecnologias ou frameworks.' }, C: { s: 'Excelente em pair programming e colaboração com a equipe.', w: 'Dificuldade em trabalhar focado por longos períodos sozinho.' }, I: { s: 'Gosta de experimentar novas arquiteturas e tecnologias.', w: 'Pode criar soluções demasiado complexas para problemas simples.' } },
+            'Montagem': { A: { s: 'Foco em atingir as metas de produção diárias a todo o custo.', w: 'Pode ignorar pequenos erros de qualidade para não parar a linha.' }, O: { s: 'Segue os procedimentos de montagem com máxima precisão e rigor.', w: 'Baixa velocidade e dificuldade em adaptar-se a mudanças no processo.' }, C: { s: 'Ajuda a manter o bom ambiente e o espírito de equipe na linha de produção.', w: 'Pode distrair-se com conversas, diminuindo a produtividade.' }, I: { s: 'Propõe melhorias e novas formas de otimizar a montagem.', w: 'Impaciência com a natureza repetitiva do trabalho.' } },
+            'Estoque': { A: { s: 'Agilidade para acelerar a entrada e saída de materiais.', w: 'Risco de erros de contagem devido à pressa.' }, O: { s: 'Controlo e organização impecável do inventário.', w: 'Burocracia excessiva para a retirada de materiais.' }, C: { s: 'Bom relacionamento com as equipes que dependem do estoque.', w: 'Dificuldade em ser rigoroso com as regras de retirada.' }, I: { s: 'Pensa em novos sistemas de automação para o estoque.', w: 'Pode desorganizar o sistema atual ao tentar implementar algo novo.' } },
+            'PCP': { A: { s: 'Foco em garantir que a produção cumpra as metas agressivas.', w: 'Cria planos irrealistas que pressionam a equipe.' }, O: { s: 'Planeamento detalhado e preciso da produção.', w: 'Planos muito rígidos e com pouca margem para imprevistos.' }, C: { s: 'Comunicação eficiente entre produção, vendas e estoque.', w: 'Tenta agradar a todos, criando planos com prazos frouxos.' }, I: { s: 'Visão para planear a introdução de novos produtos na linha.', w: 'Falta de atenção aos detalhes operacionais do dia a dia.' } },
+            'Qualidade': { A: { s: 'Foco em resolver rapidamente os problemas de qualidade.', w: 'Pode aprovar soluções "suficientes", mas não ideais.' }, O: { s: 'Busca pela perfeição e criação de padrões de qualidade rigorosos.', w: 'Perfeccionismo que pode atrasar a libertação de produtos.' }, C: { s: 'Boa comunicação para treinar as equipes em padrões de qualidade.', w: 'Dificuldade em apontar falhas diretamente aos colegas.' }, I: { s: 'Pensa em novas formas de garantir a qualidade (automação, IA).', w: 'Pode ignorar os métodos de teste tradicionais e essenciais.' } },
+            'Faturamento': { A: { s: 'Agilidade para garantir que as faturas sejam emitidas e pagas rapidamente.', w: 'Risco de erros nos detalhes por causa da pressa.' }, O: { s: 'Precisão absoluta nos valores e dados fiscais.', w: 'Processo lento e burocrático que pode atrasar o faturamento.' }, C: { s: 'Bom relacionamento com clientes para a cobrança amigável.', w: 'Dificuldade em ser incisivo com clientes inadimplentes.' }, I: { s: 'Busca por novas plataformas e automações para o processo.', w: 'Pode complicar um processo que precisa de ser simples e seguro.' } },
+            'P&D': { A: { s: 'Foco em transformar a pesquisa num produto vendável rapidamente.', w: 'Pode apressar a fase de pesquisa, pulando etapas importantes.' }, O: { s: 'Método científico rigoroso na pesquisa e documentação.', w: 'Pode ficar preso na fase de pesquisa por demasiado tempo (paralisia por análise).' }, C: { s: 'Colaboração com outras equipes para entender as necessidades do mercado.', w: 'Pode ser influenciado por opiniões em vez de dados concretos.' }, I: { s: 'Criatividade e curiosidade para explorar territórios desconhecidos.', w: 'Dificuldade em focar a pesquisa numa direção com potencial comercial.' } },
+            'Líder': { A: { s: 'Liderança diretiva, focada em entregar metas.', w: 'Microgestão e falta de delegação de poder.' }, O: { s: 'Liderança pelo exemplo, com organização e método.', w: 'Resistência a novas ideias vindas da equipe.' }, C: { s: 'Liderança servidora, que apoia e desenvolve a equipe.', w: 'Falta de assertividade para cobrar resultados e dar feedbacks.' }, I: { s: 'Liderança inspiradora, que motiva pela visão e propósito.', w: 'Comunicação vaga e falta de clareza nas direções.' } },
+            'CEO': { A: { s: 'Foco agressivo em crescimento e resultados financeiros.', w: 'Ignorar a cultura da empresa e o bem-estar dos colaboradores.' }, O: { s: 'Criação de uma empresa sólida, com processos e governança.', w: 'Lentidão para tomar decisões estratégicas ousadas.' }, C: { s: 'Ser o principal porta-voz e motivador da empresa.', w: 'Dificuldade em tomar decisões puramente racionais e duras.' }, I: { s: 'Liderar a empresa com uma visão de futuro e inovação.', w: 'Distanciar-se da realidade operacional e financeira do negócio.' } },
+        };
+        const interactionTips = {
+            A: { // Tubarão
+                O: { synergy: "A sua determinação acelera a execução, enquanto a organização do Lobo garante a qualidade. Juntos, são uma força para entregar projetos no prazo e com excelência.", attention: "Respeite a necessidade de planeamento do Lobo, evitando pressionar por decisões apressadas. O Lobo deve entender a sua necessidade de agilidade." },
+                C: { synergy: "Você define a direção e a meta, enquanto o Gato engaja e motiva a equipe. É uma combinação poderosa para liderança.", attention: "Cuidado para não parecer demasiado autoritário, o que pode desmotivar o Gato. O Gato, por sua vez, deve ser mais direto na comunicação." },
+                I: { synergy: "A visão inovadora da Águia, combinada com a sua capacidade de execução, transforma ideias em realidade. Juntos, são pioneiros que constroem.", attention: "Dê liberdade criativa à Águia, sem microgerir. A Águia precisa de traduzir as suas visões em planos com metas claras para que possa agir." }
+            },
+            O: { // Lobo
+                A: { synergy: "A sua organização garante a qualidade, enquanto a determinação do Tubarão acelera a execução. Juntos, entregam projetos complexos com excelência.", attention: "Entenda a necessidade de agilidade do Tubarão e foque-se nos dados essenciais. O Tubarão deve respeitar a sua necessidade de planeamento." },
+                C: { synergy: "Você estrutura o trabalho e garante que todos estejam alinhados, enquanto o Gato mantém a equipe unida e motivada.", attention: "Seja mais aberto à flexibilidade que o Gato traz. O Gato precisa de valorizar a importância dos processos que você define." },
+                I: { synergy: "A visão criativa da Águia, combinada com o seu método, permite que grandes ideias sejam implementadas com perfeição.", attention: "Esteja aberto às novas abordagens da Águia, mesmo que fujam ao plano. A Águia precisa de respeitar a importância da análise de riscos que você faz." }
+            },
+            C: { // Gato
+                A: { synergy: "O seu carisma engaja a equipe, enquanto a força do Tubarão garante o foco nos resultados. É uma combinação poderosa para liderança.", attention: "Seja mais direto na comunicação com o Tubarão, especialmente em feedbacks. O Tubarão precisa de cuidar para não desmotivar a equipe com uma abordagem autoritária." },
+                O: { synergy: "Você mantém a equipe unida e motivada, enquanto o Lobo estrutura o trabalho e garante que todos estejam alinhados.", attention: "Valorize a importância dos processos que o Lobo define. O Lobo precisa de ser mais aberto à flexibilidade e às relações humanas que você promove." },
+                I: { synergy: "A sua capacidade de comunicação, unida à criatividade da Águia, é ideal para marketing e inovação. Juntos, vendem qualquer ideia.", attention: "Ajude a Águia a manter o foco e a comunicar as suas ideias de forma clara para a equipe. A Águia deve valorizar o seu esforço em manter a equipe coesa." }
+            },
+            I: { // Águia
+                A: { synergy: "A sua visão inovadora, combinada com a execução do Tubarão, transforma ideias em realidade. Juntos, são pioneiros que constroem.", attention: "Traduza as suas visões em planos com metas claras para que o Tubarão possa agir. O Tubarão deve dar-lhe liberdade criativa, sem microgerir." },
+                O: { synergy: "A sua visão criativa, combinada com o método do Lobo, permite que grandes ideias sejam implementadas com perfeição.", attention: "Respeite a importância da análise de riscos que o Lobo faz. O Lobo precisa de estar mais aberto às suas novas abordagens, mesmo que fujam ao plano." },
+                C: { synergy: "A sua visão inovadora, combinada com o carisma do Gato, inspira e une as pessoas em torno de um propósito.", attention: "Comunique as suas ideias de forma clara para que o Gato possa engajar a equipe. O Gato deve ajudá-lo a manter o foco e a coesão do grupo." }
+            }
+        };
+        const developmentPlanData = {
+            A: { O: { intro: "A sua força está na ação (Tubarão 🦈), mas pode beneficiar da organização do Lobo (🐺).", actions: ["Antes do próximo projeto, dedique 15 minutos a delinear um plano passo a passo.", "Peça a um colega metódico para rever o seu plano antes de o apresentar.", "Tente seguir uma rotina matinal consistente durante uma semana."] }, C: { intro: "A sua determinação (Tubarão 🦈) é poderosa. Desenvolver a sua empatia (Gato 🐈) irá torná-lo um líder mais completo.", actions: ["Na próxima reunião, proponha-se a ouvir mais do que fala.", "Elogie publicamente um colega pelo seu trabalho esta semana.", "Antes de pedir algo a alguém, pergunte genuinamente como está o seu dia."] }, I: { intro: "O seu foco em resultados (Tubarão 🦈) é excecional. Equilibre-o com a visão a longo prazo da Águia (🦅).", actions: ["Reserve 30 minutos por semana para pensar em novas tendências da sua área, sem um objetivo imediato.", "Quando surgir um problema, pense em três soluções 'fora da caixa' antes de escolher a mais óbvia.", "Pergunte 'E se...?' mais vezes nas discussões de equipe."] } },
+            O: { A: { intro: "A sua organização (Lobo 🐺) é impecável. O desafio é aumentar a sua velocidade de decisão (Tubarão 🦈).", actions: ["Para a sua próxima pequena decisão, dê a si mesmo um prazo de 5 minutos.", "Tome uma decisão e avance, mesmo que não tenha 100% dos dados. Aceite o 'bom o suficiente'.", "Delegue uma pequena tarefa a um colega, confiando no resultado dele."] }, C: { intro: "A sua atenção ao detalhe (Lobo 🐺) é uma grande força. O próximo passo é fortalecer as suas competências de relacionamento (Gato 🐈).", actions: ["Participe numa conversa informal com colegas durante o café esta semana.", "Ofereça ajuda a um colega num projeto, mesmo que não seja da sua responsabilidade direta.", "Quando der feedback, comece por reconhecer um ponto positivo do trabalho da outra pessoa."] }, I: { intro: "O seu método (Lobo 🐺) garante qualidade. Agora, experimente abraçar um pouco da criatividade da Águia (🦅).", actions: ["Na sua próxima tarefa, questione-se: 'Qual seria a forma completamente diferente de fazer isto?'.", "Consuma conteúdo fora da sua área de especialização (um documentário, um podcast, um artigo).", "Reserve tempo para brainstorming sem julgamento, onde nenhuma ideia é má."] } },
+            C: { A: { intro: "A sua capacidade de conectar pessoas (Gato 🐈) é um dom. O desafio é ser mais assertivo (Tubarão 🦈).", actions: ["Na próxima reunião, seja o primeiro a partilhar a sua opinião sobre um tópico.", "Defina um limite claro. Diga 'não' a um pequeno pedido que não seja prioritário esta semana.", "Expresse uma opinião, mesmo que possa discordar da maioria do grupo."] }, O: { intro: "O seu talento para a colaboração (Gato 🐈) é excecional. Foque-se em adicionar mais estrutura (Lobo 🐺) ao seu trabalho.", actions: ["Antes de começar o seu dia, liste as 3 tarefas mais importantes e foque-se nelas.", "Organize os seus ficheiros digitais ou a sua área de trabalho física.", "Crie um pequeno checklist para uma tarefa repetitiva que executa."] }, I: { intro: "A sua empatia (Gato 🐈) une as pessoas. Potencie-a com a visão de futuro da Águia (🦅).", actions: ["Pergunte à sua equipe: 'O que poderíamos estar a fazer daqui a 6 meses que não estamos a fazer hoje?'.", "Partilhe uma ideia inovadora com o seu gestor, focando-se nas possibilidades futuras.", "Assista a uma palestra online sobre o futuro da sua indústria."] } },
+            I: { A: { intro: "A sua criatividade (Águia 🦅) gera ideias brilhantes. O desafio é traduzi-las em resultados concretos (Tubarão 🦈).", actions: ["Para a sua próxima grande ideia, defina uma primeira ação concreta e executável em 24 horas.", "Partilhe a sua ideia com um colega focado em resultados e peça-lhe ajuda para a tornar mais prática.", "Defina uma métrica simples para medir o sucesso da sua ideia."] }, O: { intro: "A sua visão (Águia 🦅) é inspiradora. O próximo passo é dar mais atenção aos detalhes (Lobo 🐺).", actions: ["Reveja o seu último email ou relatório à procura de erros antes de o enviar.", "Crie um cronograma com pequenas etapas para uma das suas ideias.", "Peça a um colega orientado para os detalhes para rever o seu trabalho e oiça o seu feedback."] }, C: { intro: "As suas grandes ideias (Águia 🦅) são uma força. Desenvolva a sua capacidade de as 'vender' e de engajar os outros (Gato 🐈).", actions: ["'Venda' a sua próxima ideia a um colega, focando-se nos benefícios para ele e para a equipe.", "Crie um grupo de brainstorming para evoluir uma ideia em conjunto, em vez de a desenvolver sozinho.", "Pergunte ativamente aos outros o que pensam das suas ideias e incorpore o feedback deles."] } }
+        };
+
+        let currentQuestionIndex = 0, userAnswers = new Array(questions.length).fill(null);
+        let lastResults = {};
+        let clickSynth, successSynth;
+        let radarChartInstance;
+        const startScreen = document.getElementById('start-screen'), quizScreen = document.getElementById('quiz-screen'), analyzingScreen = document.getElementById('analyzing-screen'), resultsScreen = document.getElementById('results-screen'), startBtn = document.getElementById('start-btn'), nameInput = document.getElementById('name-input'), startIconsContainer = document.getElementById('start-icons-container'), analyzingIconsContainer = document.getElementById('analyzing-icons-container'), questionContainer = document.getElementById('question-container'), questionCounter = document.getElementById('question-counter'), progressBar = document.getElementById('progress-bar'), prevBtn = document.getElementById('prev-btn'), nextBtn = document.getElementById('next-btn'), themeToggle = document.getElementById('theme-toggle'), sunIcon = document.getElementById('theme-icon-sun'), moonIcon = document.getElementById('theme-icon-moon'), validationModal = document.getElementById('validation-modal'), modalMessage = document.getElementById('modal-message'), modalCloseBtn = document.getElementById('modal-close-btn'), functionModal = document.getElementById('function-modal'), functionModalTitle = document.getElementById('function-modal-title'), functionModalStrengths = document.getElementById('function-modal-strengths'), functionModalWeaknesses = document.getElementById('function-modal-weaknesses'), functionModalCloseBtn = document.getElementById('function-modal-close-btn'), interactionModal = document.getElementById('interaction-modal'), interactionModalTitle = document.getElementById('interaction-modal-title'), interactionModalSynergy = document.getElementById('interaction-modal-synergy'), interactionModalAttention = document.getElementById('interaction-modal-attention'), interactionModalCloseBtn = document.getElementById('interaction-modal-close-btn'), passwordModal = document.getElementById('password-modal'), adminBtn = document.getElementById('admin-btn'), passwordInput = document.getElementById('password-input'), passwordCancelBtn = document.getElementById('password-cancel-btn'), passwordSubmitBtn = document.getElementById('password-submit-btn'), answerKeyScreen = document.getElementById('answer-key-screen'), closeAnswerKeyBtn = document.getElementById('close-answer-key-btn');
+
+        function initAudio() {
+            if (typeof Tone !== 'undefined' && !clickSynth) {
+                clickSynth = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
+                successSynth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: 'fatsawtooth' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.2, release: 0.2 } }).toDestination();
+            }
+        }
+        function playClickSound() { if (clickSynth && Tone.context.state === 'running') clickSynth.triggerAttackRelease('C5', '8n'); }
+        function playSuccessSound() { if (successSynth && Tone.context.state === 'running') successSynth.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], '8n', Tone.now()); }
+
+        function triggerConfetti() {
+            const confettiContainer = document.createElement('div'); document.body.appendChild(confettiContainer);
+            const colors = ['#ef4444', '#6b7280', '#f59e0b', '#3b82f6'];
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = `${Math.random() * 100}vw`;
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animation = `confetti-fall ${2 + Math.random() * 2}s linear ${Math.random() * 2}s forwards`;
+                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                confettiContainer.appendChild(confetti);
+            }
+            setTimeout(() => confettiContainer.remove(), 4000);
+        }
+        function showScreen(screen) { [startScreen, quizScreen, analyzingScreen, resultsScreen, answerKeyScreen].forEach(s => s.classList.add('hidden')); screen.classList.remove('hidden'); }
+        function showQuestion(index) {
+            const q = questions[index], questionText = q.question.substring(q.question.indexOf('.') + 1).trim();
+            questionContainer.innerHTML = `<div class="question-card bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg text-center"><h2 class="text-2xl sm:text-3xl font-bold mb-8">${questionText}</h2><div class="grid grid-cols-1 sm:grid-cols-2 gap-4">${q.options.map((option, i) => `<div><input type="radio" name="question${index}" id="q${index}o${i}" value="${optionMapping[i]}" class="hidden peer" ${userAnswers[index] === optionMapping[i] ? 'checked' : ''}><label for="q${index}o${i}" class="block cursor-pointer p-5 border border-gray-300 dark:border-gray-600 rounded-xl text-center transition-all duration-200 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 peer-checked:shadow-lg peer-checked:scale-105 hover:border-blue-500 dark:hover:border-blue-400">${option}</label></div>`).join('')}</div></div>`;
+            document.querySelectorAll(`input[name="question${index}"]`).forEach(radio => radio.addEventListener('change', (e) => { playClickSound(); userAnswers[index] = e.target.value; setTimeout(handleNext, 200); }));
+            updateProgress(); updateNavigation();
+        }
+        function updateProgress() { const answeredCount = userAnswers.filter(a => a !== null).length, progress = (answeredCount / questions.length) * 100; progressBar.style.width = `${progress}%`; questionCounter.textContent = currentQuestionIndex + 1; }
+        function updateNavigation() {
+            prevBtn.disabled = currentQuestionIndex === 0; prevBtn.classList.toggle('opacity-50', currentQuestionIndex === 0);
+            if (currentQuestionIndex === questions.length - 1) { nextBtn.textContent = 'Finalizar'; nextBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700'); nextBtn.classList.add('bg-green-600', 'hover:bg-green-700'); } else { nextBtn.textContent = 'Próxima'; nextBtn.classList.remove('bg-green-600', 'hover:bg-green-700'); nextBtn.classList.add('bg-blue-600', 'hover:bg-blue-700'); }
+        }
+        function handleNext() { if (userAnswers[currentQuestionIndex] === null) { showModal(validationModal, 'Por favor, selecione uma opção para continuar.'); return; } if (currentQuestionIndex < questions.length - 1) { currentQuestionIndex++; showQuestion(currentQuestionIndex); } else { finishQuiz(); } }
+        function handlePrev() { if (currentQuestionIndex > 0) { currentQuestionIndex--; showQuestion(currentQuestionIndex); } }
+        function finishQuiz() { 
+            playSuccessSound();
+            showScreen(analyzingScreen); 
+            setTimeout(() => { 
+                const scores = { 'A': 0, 'O': 0, 'C': 0, 'I': 0 }; 
+                userAnswers.forEach(answer => { if (answer) scores[answer]++; }); 
+                displayResults(scores); 
+            }, 3500); 
+        }
+        function restartQuiz() { currentQuestionIndex = 0; userAnswers.fill(null); showScreen(startScreen); }
+
+        function displayResults(scores) {
+            triggerConfetti();
+            const name = nameInput.value || "Utilizador";
+            const sortedProfiles = Object.entries(scores).map(([key, score]) => ({ key, score, percentage: ((score / questions.length) * 100) })).sort((a, b) => b.score - a.score);
+            
+            lastResults = { name, sortedProfiles };
+            const [dominant, secondary] = sortedProfiles;
+            const lowest = sortedProfiles[sortedProfiles.length - 1];
+            playSuccessSound(); 
+
+            const dominantProfileData = profilesData[dominant.key];
+            const combinationKey = `${dominant.key}-${secondary.key}`;
+            const combinationData = profileCombinations[combinationKey] || { title: "Perfil Único", desc: "A sua personalidade é fortemente marcada pelo seu perfil dominante." };
+            const devPlan = developmentPlanData[dominant.key][lowest.key];
+
+
+            resultsScreen.innerHTML = `<div id="pdf-content" class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg w-full animate-fade-in">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">Análise de <span class="text-blue-500">${name}</span></h2>
+                    <p class="text-gray-600 dark:text-gray-300">Este é o seu mapa comportamental.</p>
+                </div>
+                <div class="flex flex-col md:flex-row gap-8 mb-12 items-center">
+                    <div class="w-full md:w-1/2 min-h-[300px] h-full">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    <div class="w-full md:w-1/2 grid grid-cols-2 gap-4" id="profile-bars-container"></div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg border border-green-200 dark:border-green-700">
+                        <h3 class="text-2xl font-bold text-green-800 dark:text-green-300 mb-3 text-center">Os seus Superpoderes 🌟</h3>
+                        <ul class="text-gray-700 dark:text-gray-300 space-y-2 list-none">
+                           ${dominantProfileData.collaborationTips.map(tip => `<li>- ${tip}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-lg border border-orange-200 dark:border-orange-700">
+                         <h3 class="text-2xl font-bold text-orange-800 dark:text-orange-300 mb-3 text-center">A sua Missão de Desenvolvimento 🚀</h3>
+                        <p class="text-gray-700 dark:text-gray-300 mt-2">${devPlan.intro}</p>
+                        <ul class="text-gray-700 dark:text-gray-300 space-y-2 list-none mt-2">
+                            ${devPlan.actions.map(tip => `<li>- ${tip}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg border border-gray-200 dark:border-gray-600 mb-6">
+                    <div class="text-center">
+                        <h3 class="text-2xl font-bold mb-2">Perfil Dominante: <span class="text-green-500">${dominantProfileData.name}</span></h3>
+                        <p class="text-gray-700 dark:text-gray-300 mt-2 max-w-3xl mx-auto">${dominantProfileData.description}</p>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg border border-gray-200 dark:border-gray-600 mb-6">
+                    <div class="text-center">
+                        <h3 class="text-2xl font-bold mb-2">A sua Combinação: <span class="text-indigo-500">${combinationData.title}</span></h3>
+                        <p class="text-gray-700 dark:text-gray-300 mt-2 max-w-3xl mx-auto">${combinationData.desc}</p>
+                    </div>
+                </div>
+                <div class="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg border border-red-200 dark:border-red-700 mb-6">
+                    <div class="text-center">
+                        <h3 class="text-2xl font-bold text-red-800 dark:text-red-300 mb-2">Perfil Sob Pressão</h3>
+                        <p class="text-gray-700 dark:text-gray-300 mt-2 max-w-3xl mx-auto">${dominantProfileData.underPressure}</p>
+                    </div>
+                </div>
+                 <div class="bg-teal-50 dark:bg-teal-900/20 p-6 rounded-lg border border-teal-200 dark:border-teal-700 mb-6">
+                    <h3 class="text-2xl font-bold text-teal-800 dark:text-teal-300 mb-4 text-center">Como se relaciona com outros perfis</h3>
+                    <div id="interaction-buttons" class="flex flex-wrap gap-3 justify-center"></div>
+                </div>
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border border-blue-200 dark:border-blue-700">
+                    <h3 class="text-2xl font-bold text-blue-800 dark:text-blue-300 mb-4 text-center">Explore as Áreas de Atuação</h3>
+                    <div id="functions-container" class="flex flex-wrap gap-3 justify-center"></div>
+                </div>
+                <div class="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
+                     <button id="share-btn" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 transition-all duration-300 shadow-md transform hover:scale-105 w-full sm:w-auto flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <span id="share-btn-text">Partilhar Imagem</span>
+                    </button>
+                    <button id="download-pdf-btn" class="bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700 transition-all duration-300 shadow-md transform hover:scale-105 w-full sm:w-auto">
+                        Descarregar Relatório
+                    </button>
+                    <button id="restart-btn-results" class="bg-gray-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-600 transition-all duration-300 shadow-md transform hover:scale-105 w-full sm:w-auto">Refazer Teste</button>
+                </div>
+            </div>`;
+            
+            const profileBarsContainer = document.getElementById('profile-bars-container');
+            profileBarsContainer.innerHTML = '';
+            sortedProfiles.forEach((p, index) => {
+                const profile = profilesData[p.key]; let rankLabel = '';
+                if (index === 0) rankLabel = '<span class="text-xs font-bold text-green-500">DOMINANTE</span>'; else if (index === 1) rankLabel = '<span class="text-xs font-bold text-yellow-500">SECUNDÁRIO</span>';
+                profileBarsContainer.innerHTML += `<div class="result-card-enter text-center flex flex-col items-center"><div class="h-32 w-full bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden relative p-2 flex flex-col-reverse"><div class="${profile.color} w-full rounded-sm" style="height: ${p.percentage.toFixed(0)}%; transition-delay: ${index * 100}ms"></div></div><h4 class="font-bold text-md mt-3 flex items-center justify-center gap-2"><span class="text-2xl">${profile.emoji}</span>${profile.name}</h4><p class="font-black text-xl">${p.percentage.toFixed(0)}%</p>${rankLabel}</div>`;
+            });
+            
+            drawRadarChart(sortedProfiles);
+
+            const functionsContainer = document.getElementById('functions-container');
+            Object.keys(allFunctionsData).sort().forEach(funcName => {
+                functionsContainer.innerHTML += `<button data-function-name="${funcName}" class="func-btn bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-sm font-semibold px-4 py-2 rounded-full hover:bg-blue-200 dark:hover:bg-blue-700 transition">${funcName}</button>`;
+            });
+             const interactionContainer = document.getElementById('interaction-buttons');
+            Object.keys(profilesData).filter(key => key !== dominant.key).forEach(key => {
+                const profile = profilesData[key];
+                interactionContainer.innerHTML += `<button data-interaction-key="${key}" class="interaction-btn bg-teal-100 dark:bg-teal-800 text-teal-800 dark:text-teal-200 text-sm font-semibold px-4 py-2 rounded-full hover:bg-teal-200 dark:hover:bg-teal-700 transition flex items-center gap-2">${profile.emoji} ${profile.name}</button>`;
+            });
+
+
+            document.querySelectorAll('.func-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const funcName = e.target.dataset.functionName;
+                    const funcData = allFunctionsData[funcName];
+                    const contextualAnalysis = funcData[dominant.key];
+                    functionModalTitle.textContent = funcName;
+                    functionModalStrengths.innerHTML = `<li>- ${contextualAnalysis.s}</li>`;
+                    functionModalWeaknesses.innerHTML = `<li>- ${contextualAnalysis.w}</li>`;
+                    showModal(functionModal);
+                });
+            });
+            
+            document.querySelectorAll('.interaction-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const targetKey = e.currentTarget.dataset.interactionKey;
+                    const dominantKey = dominant.key;
+                    const interactionData = interactionTips[dominantKey][targetKey];
+                    interactionModalTitle.textContent = `${profilesData[dominantKey].name} interagindo com ${profilesData[targetKey].name}`;
+                    interactionModalSynergy.textContent = interactionData.synergy;
+                    interactionModalAttention.textContent = interactionData.attention;
+                    showModal(interactionModal);
+                });
+            });
+
+
+            document.getElementById('restart-btn-results').addEventListener('click', restartQuiz);
+            document.getElementById('download-pdf-btn').addEventListener('click', generatePDF);
+            document.getElementById('share-btn').addEventListener('click', shareResultsAsImage);
+            
+            showScreen(resultsScreen);
+            setTimeout(() => { document.querySelectorAll('.result-card-enter').forEach(el => { el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }); }, 100);
+        }
+
+        function drawRadarChart(sortedProfiles) {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            const isDarkMode = document.documentElement.classList.contains('dark');
+            const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)';
+            const fontColor = isDarkMode ? '#E5E7EB' : '#1F2937';
+
+            const labels = ['🦅 Águia', '🐈 Gato', '🐺 Lobo', '🦈 Tubarão'];
+            const dataScores = { 'I': 0, 'C': 0, 'O': 0, 'A': 0 };
+            sortedProfiles.forEach(p => { dataScores[p.key] = p.percentage; });
+            const data = [dataScores['I'], dataScores['C'], dataScores['O'], dataScores['A']];
+
+            if (radarChartInstance) { radarChartInstance.destroy(); }
+
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: window.innerWidth < 768 ? ['🦅', '🐈', '🐺', '🦈'] : labels,
+                    datasets: [{
+                        label: 'Seu Perfil',
+                        data: data,
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: gridColor },
+                            grid: { color: gridColor },
+                            pointLabels: {
+                                font: { size: window.innerWidth < 768 ? 24 : 14, family: 'Inter, sans-serif' },
+                                color: fontColor
+                            },
+                            ticks: { display: false, stepSize: 25, max: 100, min: 0 }
+                        }
+                    },
+                    plugins: { legend: { display: false } },
+                    animation: { duration: 1500, easing: 'easeInOutQuint' }
+                }
+            });
+        }
+
+
+        async function shareResultsAsImage() {
+            const shareBtn = document.getElementById('share-btn');
+            const shareBtnText = document.getElementById('share-btn-text');
+            shareBtn.disabled = true;
+            shareBtnText.textContent = 'A gerar...';
+
+            const { name, sortedProfiles } = lastResults;
+            const [dominant, secondary] = sortedProfiles;
+            const combinationKey = `${dominant.key}-${secondary.key}`;
+            const combinationData = profileCombinations[combinationKey] || { title: "Perfil Único" };
+
+            document.getElementById('share-card-name').textContent = name;
+            document.getElementById('share-card-combo-title').textContent = combinationData.title;
+
+            const chartCloneContainer = document.getElementById('share-card-chart');
+            chartCloneContainer.innerHTML = '';
+            sortedProfiles.forEach(p => {
+                const profile = profilesData[p.key];
+                const cardHTML = `<div class="text-center flex flex-col items-center">
+                    <div class="h-32 w-20 bg-gray-200 rounded-lg overflow-hidden relative p-1 flex flex-col-reverse">
+                        <div class="${profile.color} w-full rounded-sm" style="height: ${p.percentage.toFixed(0)}%;"></div>
+                    </div>
+                    <h4 class="font-bold text-sm mt-2 flex items-center justify-center gap-1"><span class="text-xl">${profile.emoji}</span>${profile.name}</h4>
+                    <p class="font-black text-lg">${p.percentage.toFixed(0)}%</p>
+                </div>`;
+                chartCloneContainer.innerHTML += cardHTML;
+            });
+
+            const cardElement = document.getElementById('share-card');
+            
+            try {
+                const canvas = await html2canvas(cardElement, { scale: 2 });
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                const file = new File([blob], `resultado_${name.replace(/\s/g, '_')}.png`, { type: 'image/png' });
+                const shareData = {
+                    title: 'O meu Resultado do Teste de Perfil',
+                    text: `Descobri o meu perfil comportamental: sou ${combinationData.title}!`,
+                    files: [file],
+                };
+                
+                if (navigator.share && navigator.canShare(shareData)) {
+                    await navigator.share(shareData);
+                    shareBtnText.textContent = 'Partilhado!';
+                } else {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(file);
+                    link.download = file.name;
+                    link.click();
+                    URL.revokeObjectURL(link.href);
+                    shareBtnText.textContent = 'Imagem Descarregada!';
+                }
+            } catch (error) {
+                console.error("Erro ao partilhar a imagem:", error);
+                shareBtnText.textContent = 'Erro!';
+            } finally {
+                 setTimeout(() => {
+                    shareBtn.disabled = false;
+                    shareBtnText.textContent = 'Partilhar Imagem';
+                }, 3000);
+            }
+        }
+        
+        function generatePDF() {
+            const downloadBtn = document.getElementById('download-pdf-btn');
+            downloadBtn.textContent = 'A gerar...';
+            downloadBtn.disabled = true;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const { name, sortedProfiles } = lastResults;
+            const [dominant, secondary] = sortedProfiles;
+            const dominantProfileData = profilesData[dominant.key];
+            const combinationKey = `${dominant.key}-${secondary.key}`;
+            const combinationData = profileCombinations[combinationKey] || { title: "Perfil Único", desc: "A sua personalidade é fortemente marcada pelo seu perfil dominante." };
+            const date = new Date().toLocaleDateString('pt-PT');
+            let y = 20;
+            doc.setFont('Inter', 'bold');
+            doc.setFontSize(18);
+            doc.text('Relatório de Perfil Comportamental', 105, y, { align: 'center' });
+            y += 8;
+            doc.setFont('Inter', 'normal');
+            doc.setFontSize(11);
+            doc.text(`${name} - ${date}`, 105, y, { align: 'center' });
+            y += 15;
+            doc.setFont('Inter', 'bold');
+            doc.setFontSize(12);
+            doc.text('Sumário do seu Perfil:', 15, y);
+            y += 8;
+            doc.setFont('Inter', 'normal');
+            doc.setFontSize(11);
+            sortedProfiles.forEach((p, index) => {
+                const profile = profilesData[p.key];
+                let rankText = "";
+                if (index === 0) rankText = " (Dominante)";
+                if (index === 1) rankText = " (Secundário)";
+                doc.text(`${profile.name}: ${p.percentage.toFixed(0)}%${rankText}`, 15, y);
+                y += 7;
+            });
+            y += 8;
+            const addSection = (title, content, color = [0, 0, 0]) => {
+                if (y > 270) { doc.addPage(); y = 20; }
+                doc.setFont('Inter', 'bold');
+                doc.setFontSize(12);
+                doc.setTextColor(color[0], color[1], color[2]);
+                doc.text(title, 15, y);
+                y += 6;
+                doc.setFont('Inter', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(33, 33, 33);
+                const lines = doc.splitTextToSize(content, 180);
+                doc.text(lines, 15, y);
+                y += (lines.length * 4.5) + 8;
+            };
+            addSection(`Perfil Dominante: ${dominantProfileData.name}`, dominantProfileData.description, [22, 163, 74]);
+            addSection(`A sua Combinação: ${combinationData.title}`, combinationData.desc, [79, 70, 229]);
+            addSection('Perfil Sob Pressão', dominantProfileData.underPressure, [220, 38, 38]);
+            if (y > 265) { doc.addPage(); y = 20; }
+            doc.setFont('Inter', 'bold');
+            doc.setFontSize(12);
+            doc.setTextColor(147, 51, 234);
+            doc.text('Dicas para Trabalhar Comigo', 15, y);
+            y += 6;
+            doc.setFont('Inter', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(33, 33, 33);
+            dominantProfileData.collaborationTips.forEach(tip => {
+                if (y > 280) { doc.addPage(); y = 20; }
+                doc.text(`- ${tip}`, 20, y);
+                y += 5;
+            });
+            doc.save(`Relatorio_Perfil_${name.replace(/\s/g, '_')}.pdf`);
+            downloadBtn.textContent = 'Descarregar Relatório';
+            downloadBtn.disabled = false;
+        }
+
+        function populateIcons() {
+            const profileOrder = ['A', 'O', 'C', 'I'];
+            startIconsContainer.innerHTML = ''; analyzingIconsContainer.innerHTML = '';
+            profileOrder.forEach((key, index) => {
+                const profile = profilesData[key];
+                startIconsContainer.innerHTML += `<div class="flex justify-center items-center h-24 bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4"><span class="text-5xl">${profile.emoji}</span></div>`;
+                analyzingIconsContainer.innerHTML += `<div class="text-6xl" style="animation: pulse-icon 2s ease-in-out infinite; animation-delay: ${index * 0.4}s;">${profile.emoji}</div>`;
+            });
+        }
+        
+        function showAnswerKey() {
+            const tableBody = document.getElementById('answer-key-body');
+            tableBody.innerHTML = '';
+            questions.forEach((q, index) => {
+                const row = `
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="py-4 px-6 font-medium text-gray-900 whitespace-nowrap dark:text-white">${index + 1}</td>
+                        <td class="py-4 px-6">${q.options[0]}</td>
+                        <td class="py-4 px-6">${q.options[1]}</td>
+                        <td class="py-4 px-6">${q.options[2]}</td>
+                        <td class="py-4 px-6">${q.options[3]}</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+            showScreen(answerKeyScreen);
+        }
+
+        startBtn.addEventListener('click', async () => { 
+            if (nameInput.value.trim() === '') { showModal(validationModal, 'Por favor, digite o seu nome para começar.'); return; }
+            if (typeof Tone !== 'undefined' && Tone.context.state !== 'running') {
+                await Tone.start();
+            }
+            playClickSound();
+            showScreen(quizScreen); 
+            showQuestion(currentQuestionIndex); 
+        });
+        prevBtn.addEventListener('click', () => { playClickSound(); handlePrev(); }); 
+        nextBtn.addEventListener('click', () => { playClickSound(); handleNext(); });
+        modalCloseBtn.addEventListener('click', () => hideModal(validationModal)); 
+        functionModalCloseBtn.addEventListener('click', () => hideModal(functionModal));
+        interactionModalCloseBtn.addEventListener('click', () => hideModal(interactionModal));
+        adminBtn.addEventListener('click', () => showModal(passwordModal));
+        passwordCancelBtn.addEventListener('click', () => hideModal(passwordModal));
+        passwordSubmitBtn.addEventListener('click', () => {
+            if (passwordInput.value === 'JD123') {
+                hideModal(passwordModal);
+                showAnswerKey();
+                passwordInput.value = '';
+            } else {
+                alert('Senha incorreta!');
+            }
+        });
+        closeAnswerKeyBtn.addEventListener('click', () => showScreen(startScreen));
+        
+        function applyTheme(isDark) { 
+            if (isDark) { document.documentElement.classList.add('dark'); sunIcon.classList.remove('hidden'); moonIcon.classList.add('hidden'); } 
+            else { document.documentElement.classList.remove('dark'); sunIcon.classList.add('hidden'); moonIcon.classList.remove('hidden'); }
+        }
+        themeToggle.addEventListener('click', () => { 
+            const isDark = document.documentElement.classList.toggle('dark'); 
+            localStorage.setItem('theme', isDark ? 'dark' : 'light'); 
+            applyTheme(isDark);
+            if (radarChartInstance) {
+                const gridColor = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)';
+                const fontColor = isDark ? '#E5E7EB' : '#1F2937';
+                radarChartInstance.options.scales.r.angleLines.color = gridColor;
+                radarChartInstance.options.scales.r.grid.color = gridColor;
+                radarChartInstance.options.scales.r.pointLabels.color = fontColor;
+                radarChartInstance.update('none');
+            }
+        });
+        function showModal(modal, message = '') { if (message && modal === validationModal) { modalMessage.textContent = message; } modal.classList.remove('hidden'); setTimeout(() => modal.classList.remove('opacity-0'), 10); }
+        function hideModal(modal) { modal.classList.add('opacity-0'); setTimeout(() => modal.classList.add('hidden'), 300); }
+
+        (function() { 
+            const savedTheme = localStorage.getItem('theme'); 
+            applyTheme(savedTheme === 'dark'); 
+            populateIcons();
+            initAudio(); 
+            showScreen(startScreen); 
+        })();
+    </script>
+</body>
+</html>
+
